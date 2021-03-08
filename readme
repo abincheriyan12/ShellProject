@@ -1,0 +1,17 @@
+BUILT-IN COMMANDS
+    cd      Change the current directory to the one specified after the command. If the directory specified does not exist
+            report an error. If there is no argument, change to $HOME.
+
+    clr     Clear the screen.
+
+    dir      List the contents of a directory.
+
+    environ List all the environment strings.
+
+    echo    Followed by a string and print that string onto the screen with a newline character.
+
+    help    Display the user manual.
+
+    pause   Pause the operation of the shell until Enter is pressed
+
+    quit    Quits the shell.
