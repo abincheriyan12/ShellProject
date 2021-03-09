@@ -58,9 +58,139 @@ void pausing(cmnd);
 void error();
 void exitshell(cmnd);
 
-void initstruct(cmnd *);
-void builtinshandler(cmnd);
-void parse(char *, cmnd *);
+void initstruct(cmnd *in)
+{
+    in -> builtin = 0;
+    in -> argcount = 0;
+    in -> out = 0;
+    in -> out1 = 0;
+    in -> in = 0;
+    //in -> pipe = 0;
+    //in -> bgexecution = 0;
+}
+
+void builtinshandler(cmnd in)
+{
+    if (strcmp(in.args[0], CD) == 0)
+    {
+        //cd can have at most one argument
+        if (in.argcount > 1)
+        {
+            error();
+        }
+        else{
+            cd(in);
+        }
+    }
+    else if (strcmp(in.args[0], CLR) == 0)
+    {
+        if (in.argcount > 0)
+        {
+            error();
+        }
+        else{
+            clr();
+        }
+        return;
+    }
+    else if (strcmp(in.args[0], DR) == 0)
+    {
+        dir(in);
+    }
+    else if (strcmp(in.args[0], ENVIRON) == 0)
+    {
+        environ(in);
+    }
+    else if (strcmp(in.args[0], ECHO) == 0)
+    {
+        echo(in);
+    }
+    else if (strcmp(in.args[0], HELP) == 0)
+    {
+        help(in);
+    }
+    else if (strcmp(in.args[0], PAUSE) == 0)
+    {
+        pausing(in);
+    }
+    else if (strcmp(in.args[0], QUIT) == 0)
+    {
+        exitshell(in);
+    }else
+    {
+        error();
+    }
+}
+
+void parse(char *line, cmnd *in)
+{
+    const char *delims = " \n\t";
+    char *buffer = strtok(line, delims);        //buffer to hold tokens
+    if (strcmp(buffer, CD) == 0)
+    {
+        in -> builtin = 1;
+    }
+    else if (strcmp(buffer, CLR) == 0)
+    {
+        in -> builtin = 1;
+    }
+    else if (strcmp(buffer, DR) == 0)
+    {
+        in -> builtin = 1;
+    }
+    else if (strcmp(buffer, ENVIRON) == 0)
+    {
+        in -> builtin = 1;
+    }
+    else if (strcmp(buffer, ECHO) == 0)
+    {
+        in -> builtin = 1;
+    }
+    else if (strcmp(buffer, HELP) == 0)
+    {
+        in -> builtin = 1;
+    }
+    else if (strcmp(buffer, PAUSE) == 0)
+    {
+        in -> builtin = 1;
+    }
+    else if (strcmp(buffer, QUIT) == 0)
+    {
+        exit(0);
+    }
+    else{
+        in -> builtin = 0;
+    }
+
+    strcpy(in -> args[0], buffer);                     //storing command in the argument array
+    int i = 1;
+    while((buffer = strtok(NULL, delims)) != NULL)  //loop to parse the rest of the input
+    {
+        switch (buffer[0])
+        {
+            case '>':
+                if (buffer[1] == '>')
+                {
+                    in -> out1 = i; // ">>"
+                }
+                else{
+                    in->out = i;   // ">"
+                }
+                break;
+            case '<':
+                in -> in = i-1;    // "<"
+                break;
+            case '\t':
+                break;
+            case '\n':
+                break;
+            default:
+                strcpy(in -> args[i++], buffer);
+                in -> argcount++;
+        }
+    }
+    free(buffer);
+}
 
 int main(int argc, char *argv[])
 {
@@ -366,136 +496,4 @@ void exitshell (cmnd in)   //Quit  BUILTIN COMMAND
     }
 }
 
-void initstruct(cmnd *in)
-{
-    in -> builtin = 0;
-    in -> argcount = 0;
-    in -> out = 0;
-    in -> out1 = 0;
-    in -> in = 0;
-    //in -> pipe = 0;
-    //in -> bgexecution = 0;
-}
 
-void builtinshandler(cmnd in)
-{
-    if (strcmp(in.args[0], CD) == 0)
-    {
-        //cd can have at most one argument
-        if (in.argcount > 1)
-        {
-            error();
-        }
-        else{
-            cd(in);
-        }
-    }
-    else if (strcmp(in.args[0], CLR) == 0)
-    {
-        if (in.argcount > 0)
-        {
-            error();
-        }
-        else{
-            clr();
-        }
-        return;
-    }
-    else if (strcmp(in.args[0], DR) == 0)
-    {
-        dir(in);
-    }
-    else if (strcmp(in.args[0], ENVIRON) == 0)
-    {
-        environ(in);
-    }
-    else if (strcmp(in.args[0], ECHO) == 0)
-    {
-        echo(in);
-    }
-    else if (strcmp(in.args[0], HELP) == 0)
-    {
-        help(in);
-    }
-    else if (strcmp(in.args[0], PAUSE) == 0)
-    {
-        pausing(in);
-    }
-    else if (strcmp(in.args[0], QUIT) == 0)
-    {
-        exitshell(in);
-    }else
-    {
-        error();
-    }
-}
-
-void parse(char *line, cmnd *in)
-{
-    const char *delims = " \n\t";
-    char *buffer = strtok(line, delims);        //buffer to hold tokens
-    if (strcmp(buffer, CD) == 0)
-    {
-        in -> builtin = 1;
-    }
-    else if (strcmp(buffer, CLR) == 0)
-    {
-        in -> builtin = 1;
-    }
-    else if (strcmp(buffer, DR) == 0)
-    {
-        in -> builtin = 1;
-    }
-    else if (strcmp(buffer, ENVIRON) == 0)
-    {
-        in -> builtin = 1;
-    }
-    else if (strcmp(buffer, ECHO) == 0)
-    {
-        in -> builtin = 1;
-    }
-    else if (strcmp(buffer, HELP) == 0)
-    {
-        in -> builtin = 1;
-    }
-    else if (strcmp(buffer, PAUSE) == 0)
-    {
-        in -> builtin = 1;
-    }
-    else if (strcmp(buffer, QUIT) == 0)
-    {
-        exit(0);
-    }
-    else{
-        in -> builtin = 0;
-    }
-
-    strcpy(in -> args[0], buffer);                     //storing command in the argument array
-    int i = 1;
-    while((buffer = strtok(NULL, delims)) != NULL)  //loop to parse the rest of the input
-    {
-        switch (buffer[0])
-        {
-            case '>':
-                if (buffer[1] == '>')
-                {
-                    in -> out1 = i; // ">>"
-                }
-                else{
-                    in->out = i;   // ">"
-                }
-                break;
-            case '<':
-                in -> in = i-1;    // "<"
-                break;
-            case '\t':
-                break;
-            case '\n':
-                break;
-            default:
-                strcpy(in -> args[i++], buffer);
-                in -> argcount++;
-        }
-    }
-    free(buffer);
-}
