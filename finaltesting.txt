@@ -1,0 +1,62 @@
+Abin Cheriyan
+Professor Fiore
+03/20/2021
+
+The purpose of this assignment was to create a shell that could take in and run some of the basic Linux shell commands on the Linux terminal.
+
+The built-in commands that we were supposed to implement are:
+#define CD   "cd"
+#define CLR  "clr"
+#define DR   "dir"
+#define ENVIRON "environ"
+#define ECHO    "echo"
+#define HELP    "help"
+#define PAUSE   "pause"
+#define QUIT    "quit"
+#define PATH    "path"
+
+cd:     Change the current directory to the one specified after the command. If the directory specified does not exist, report an error. If there is no argument, change to $HOME.
+
+clr:     Clear the screen.
+
+dir:      List the contents of a directory.
+
+environ: List all the environment strings.
+
+echo:    Followed by a string and print that string onto the screen with a newline character.
+
+help:    Display the user manual.
+
+pause:   Pause the operation of the shell until Enter is pressed
+
+quit:    Quits the shell.
+
+You were also expected to implement "fork", "exec", "background execution" in the program.
+Because of certain situations, I could not implement that.
+
+The user has the ability to run the builtin commands by typing in the commands into the shell
+terminal or by passing in a "batch.txt" file which has all the commands written out
+beforehand which the shell will go thru one by one automatically.
+
+The Builtinshandler func checks to see which command needs to be executed
+and sends it to the appropriate command function.
+
+//not implemented
+The pipehandler func is supposed to hold the pipe func and everything related to piping
+and executes piping once gets called.
+
+The handlevrythingelse func will do the background process and etc.
+////
+
+A cmnd struct is made and it holds all the values/variables that will be
+throughout the program. All values set to 0 at first and incremented
+when we use them.
+
+ int  builtin;             //1 if the command is built-in
+ char args[50][50];       //hold the arguments for a command
+ int  argcount;
+ int  out;                // >
+ int  out1;               // >>
+ int  in;                 // <
+ int  pipe;               // |
+ int  bgexecution;        //1 if the command should be executed in the background

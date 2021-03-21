@@ -15,3 +15,12 @@ BUILT-IN COMMANDS
     pause   Pause the operation of the shell until Enter is pressed
 
     quit    Quits the shell.
+
+Redirections
+    "<" takes the input in and uses one of the built in commands or one of the other functions.
+
+    ">" sends the ouput to the desired given place. Clears the file and re write them.
+
+    ">>" works like the ">" but doesn't clear the whole given desired file but append them.
+
+

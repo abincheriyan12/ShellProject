@@ -1,0 +1,8 @@
+cd
+dir
+echo cis3207
+environ
+pause
+help
+clr
+quit

@@ -29,10 +29,12 @@ h. quit
 #define HELP    "help"
 #define PAUSE   "pause"
 #define QUIT    "quit"
+#define PATH    "path"
 
+//global variables
 char path[75][75];
 char pwd[100];
-char spath[100];                //shellpath
+char spath[100];   //shellpath
 int pathsize = 1;
 
 typedef struct{
@@ -42,8 +44,8 @@ typedef struct{
     int  out;                // >
     int  out1;               // >>
     int  in;                 // <
-    // int  pipe;               // |
-    //int  bgexecution;        //1 if the command should be executed in the background
+    int  pipe;               // |
+    int  bgexecution;        //1 if the command should be executed in the background
 }cmnd;
 
 // builtin commands
@@ -57,6 +59,9 @@ void help(cmnd);
 void pausing(cmnd);
 void error();
 void exitshell(cmnd);
+void PathChange (cmnd);
+void handleevrythingelse(cmnd);
+void pipehandler(char args[75][75], int argc, int number);
 
 void initstruct(cmnd *in)
 {
@@ -65,15 +70,15 @@ void initstruct(cmnd *in)
     in -> out = 0;
     in -> out1 = 0;
     in -> in = 0;
-    //in -> pipe = 0;
-    //in -> bgexecution = 0;
+    in -> pipe = 0;
+    in -> bgexecution = 0;
 }
 
 void builtinshandler(cmnd in)
 {
     if (strcmp(in.args[0], CD) == 0)
     {
-        //cd can have at most one argument
+        //  at most one argument
         if (in.argcount > 1)
         {
             error();
@@ -116,6 +121,10 @@ void builtinshandler(cmnd in)
     else if (strcmp(in.args[0], QUIT) == 0)
     {
         exitshell(in);
+    }
+    else if (strcmp(in.args[0], PATH) == 0)
+    {
+        PathChange(in);
     }else
     {
         error();
@@ -126,6 +135,10 @@ void parse(char *line, cmnd *in)
 {
     const char *delims = " \n\t";
     char *buffer = strtok(line, delims);        //buffer to hold tokens
+    if (buffer == NULL)
+    {
+        return;
+    }
     if (strcmp(buffer, CD) == 0)
     {
         in -> builtin = 1;
@@ -158,39 +171,65 @@ void parse(char *line, cmnd *in)
     {
         exit(0);
     }
+    else if (strcmp(buffer, PATH) == 0)
+    {
+        in -> builtin = 1;
+    }
     else{
         in -> builtin = 0;
     }
 
-    strcpy(in -> args[0], buffer);                     //storing command in the argument array
+    strncpy(in -> args[0], buffer, 50);       //storing command in the argument array
     int i = 1;
     while((buffer = strtok(NULL, delims)) != NULL)  //loop to parse the rest of the input
     {
         switch (buffer[0])
         {
             case '>':
-                if (buffer[1] == '>')
+                if (buffer[0] == '>')
                 {
-                    in -> out1 = i; // ">>"
-                }
-                else{
-                    in->out = i;   // ">"
+                    if (buffer[1] == '>')
+                    {
+                        if(buffer[2] != '\0')
+                        {
+                            in -> builtin = -1;
+                            return;
+                        }
+                        else
+                            in -> out1 = i;
+                    }
+                    else if (buffer[1] != '\0')
+                    {
+                        in -> builtin = -1;
+                        return;
+                    }
+                    else in -> out = i;
                 }
                 break;
             case '<':
-                in -> in = i-1;    // "<"
+                in -> in = i;
+                if (buffer[1] != '\0')
+                {
+                    in -> builtin = -1;
+                    return;
+                }
                 break;
             case '\t':
                 break;
+
             case '\n':
                 break;
+
             default:
-                strcpy(in -> args[i++], buffer);
+                strncpy(in -> args[i++], buffer, 50);
                 in -> argcount++;
         }
     }
     free(buffer);
 }
+
+
+
 
 int main(int argc, char *argv[])
 {
@@ -209,21 +248,21 @@ int main(int argc, char *argv[])
         file = fopen(argv[1], "r");
         if (file == NULL)
         {
-            printf("file can't be opened");
+            printf("file cannot be opened\n");
             exit(1);
         }
     }
     else if (argc > 2)
     {
-        printf(" >>> arguments");
+        printf(" >> arguments");
         exit(1);
     }
     else batchmode = 0;
     size_t size = 100;
-    char *line = (char *)malloc(size * sizeof(char));//allocating memory for char array to hold the user inputs
+    char *line = (char *)malloc(size * sizeof(char));//making memory for char array to hold usr inputs
     while(1)
     {
-        printf("shell-> ");
+        printf("tuh00755 > ");
         if (batchmode)
         {
             if (getline(&line, &size, file) == -1)
@@ -231,11 +270,21 @@ int main(int argc, char *argv[])
                 break;
             }
         }
-        else getline(&line, &size, stdin);
+        else
+        {
+            fflush (stdin);
+            fflush(stdin);
+            getline(&line, &size, stdin);
+        }
         if (strcmp(line, "\n") != 0)
         {
             parse(line, &in);
-            if (in.builtin)  //once parsed,handle parsed command
+
+            if(in.builtin == -1)
+            {
+                error();
+            }
+            else if (in.builtin)  //once parsed,handle parsed command
             {
                 builtinshandler(in);
             }
@@ -247,7 +296,11 @@ int main(int argc, char *argv[])
 }
 //Builtin Commands
 
-void cd(cmnd in)                        //a. cd <directory>  BUILTIN COMMAND
+//a. cd <directory>  BUILTIN COMMAND
+void cd(cmnd in)
+//if there are no arguments, the pwd is printed
+// else chdir() is called. on success, the new pwd is printed
+// else calls error func
 {
     if (in.argcount == 0)
     {
@@ -265,7 +318,8 @@ void cd(cmnd in)                        //a. cd <directory>  BUILTIN COMMAND
     }
 }
 
-void clr()         //b. clr - Prints 100 empty line
+//b. clr - Prints 100 empty line
+void clr()
 {
     int i = 0;
     while( i <= 100)
@@ -275,7 +329,8 @@ void clr()         //b. clr - Prints 100 empty line
     }
 }
 
-void dir(cmnd in)        //  c. dir <directory> BUILTIN COMMAND
+//  c. dir <directory> BUILTIN COMMAND
+void dir(cmnd in)
 {
     DIR *directory;
     struct dirent *read;
@@ -284,7 +339,7 @@ void dir(cmnd in)        //  c. dir <directory> BUILTIN COMMAND
         error();
         return;
     }
-    if (in.argcount == 0) //opening the the current directory if no argument given
+    if (in.argcount == 0) //opens the the current directory if no argument given
     {
         directory = opendir(pwd);
     }
@@ -334,8 +389,8 @@ void dir(cmnd in)        //  c. dir <directory> BUILTIN COMMAND
     }
     closedir(directory);
 }
-
-void environ(cmnd in)                                //d. environ BUILTIN COMMAND
+//d. environ BUILTIN COMMAND
+void environ(cmnd in)
         {
                 if (in.argcount > 1)
                 {
@@ -343,46 +398,47 @@ void environ(cmnd in)                                //d. environ BUILTIN COMMAN
                 }
                 else if (in.argcount == 1)
                 {
-                    FILE *fp;                                    //redirection
+                    FILE *fp;                                     //redirection
                     if (in.out)
                     {
-                        fp = fopen(in.args[in.out], "w");        //truncate
+                        fp = fopen(in.args [in.out], "w");        //truncate
                     }
                     else{
-                        fp = fopen(in.args[in.out1], "a");  //append
+                        fp = fopen(in.args [in.out1], "a");   //append
                     }
                     if (fp == NULL)
                     {
                         error();
                         perror("\n");
                     }
-                    fprintf(fp, " PATH = %s ", path[0]);
+                    fprintf(fp, " Path = %s ", path[0]);
                     int i = 1;
                     while(i < pathsize)
                     {
                         fprintf(fp, ":%s", path[i++]);
                     }
-                    fprintf(fp, "\n shell = %s/ shell \n", spath);
-                    fprintf(fp, "PWD  =  %s\n", pwd);
-                    fprintf(fp, "USER = %s\n", getenv("USER"));
-                    fprintf(fp, "HOME = %s\n", getenv("HOME"));
+                    fprintf(fp, "\nshell = %s/ shell \n", spath);
+                    fprintf(fp, "Pwd  =  %s\n", pwd);
+                    fprintf(fp, "User = %s\n", getenv("USER"));
+                    fprintf(fp, "Home = %s\n", getenv("HOME"));
                     fclose (fp);
                 }
                 else{                              //no redirection
-                    printf("PATH = %s", path[0]);
+                    printf("Path = %s", path[0]);
                     int i = 1;
                     while(i < pathsize)
                     {
                         printf(":%s", path[i++]);
                     }
-                    printf("\n shell = %s/ shell \n", spath);
-                    printf("PWD  =  %s\n", pwd);
-                    printf("USER = %s\n", getenv("USER"));
-                    printf("HOME = %s\n", getenv("HOME"));
+                    printf("\nshell = %s/ shell \n", spath);
+                    printf("Pwd  =  %s\n", pwd);
+                    printf("User = %s\n", getenv("USER"));
+                    printf("Home = %s\n", getenv("HOME"));
                 }
         }
 
-        void echo(cmnd in)                              //e. echo <comment> BUILTIN COMMAND
+//e. echo <comment> BUILTIN COMMAND
+        void echo(cmnd in)
 {
     if (in.argcount == 0 || in.argcount > 2)
     {
@@ -464,14 +520,15 @@ void help(cmnd in)
     fclose(hlp);
 }
 
-void pausing(cmnd in)               // g. pause BUILTIN COMMAND
+// g. pause BUILTIN COMMAND
+void pausing(cmnd in)
 {
     if (in.argcount)
     {
         error();
         return;
     }
-    printf("press enter to continue\n");
+    printf("Press enter to continue\n");
     char c;
     int i;
 
@@ -485,7 +542,17 @@ void pausing(cmnd in)               // g. pause BUILTIN COMMAND
     } while (i);
 }
 
-void exitshell (cmnd in)   //Quit  BUILTIN COMMAND
+//Error function
+// prints error
+void error ()
+{
+    //printf("An error has occurred \n ");
+    char *message = "An error has occured\n";
+    write(STDERR_FILENO, message, strlen(message));
+}
+
+//Quit  BUILTIN COMMAND
+void exitshell (cmnd in)
 {
     if (in.argcount > 0)
     {
@@ -496,4 +563,58 @@ void exitshell (cmnd in)   //Quit  BUILTIN COMMAND
     }
 }
 
+//Changes the path
+void PathChange(cmnd in)
+{
+    if (in.argcount == 0)
+    {
+        strcpy(path[0], "\0");
+        return;
+    }
+    int i = 1;
+    //this loop uses opendir() to check if the arguments given are existing dir
+    while (i <= in.argcount)
+    {
+        DIR *directory = opendir(in.args[i]);
+        if (directory == NULL)
+        {
+            error();
+            return;
+        }
+        strcpy(path[i - 1], in.args[i]);
+        i++;
+        closedir(directory);
+    }
+    strcpy(path[i - 1], "\0");
+}
 
+void handleevrythingelse(cmnd in)
+{
+    if (strcmp(path[0], "\0") == 0)
+    {
+        error();
+        return;
+    }
+    if (in.pipe > 0)
+    {
+        pipehandler(in.args, in.argcount, in.pipe);
+        return;
+    }
+    /////
+    ///fork
+    ///etc
+
+}
+void pipehandler(char args[75][75], int argc, int number)
+{
+    if (!number)
+    {
+        error();
+        return;
+    }
+    else
+    {
+        //////
+    }
+
+}
